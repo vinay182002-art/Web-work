@@ -123,3 +123,42 @@ export function analyseAttempts(attempts = []) {
   }));
   return { total, correct, accuracy: total ? Math.round(correct / total * 100) : 0, byBloom };
 }
+
+/**
+ * Question-bank hierarchy: Semester → Subject → Unit → Chapter → Topic.
+ * The governed curriculum remains the source of truth for the shape; questions
+ * are attached by subject/chapter/topic metadata so no UI hardcodes a list.
+ */
+export function getQuestionTree() {
+  return demoCurriculum.subjects.map((subject) => ({
+    subjectId: subject.id,
+    title: subject.title,
+    questionCount: getQuestions({ subjectId: subject.id }).length,
+    units: subject.units.map((unit) => ({
+      unitId: unit.id,
+      title: unit.title,
+      chapters: unit.chapters.map((chapter) => ({
+        chapterId: chapter.id,
+        title: chapter.title,
+        questions: getQuestions({ chapterId: chapter.id }),
+        topics: chapter.topics.map((topic) => ({
+          topic,
+          questions: getQuestions({ chapterId: chapter.id }).filter((question) => question.topicId === topic)
+        }))
+      }))
+    }))
+  }));
+}
+
+export function getQuestionBankSummary() {
+  return getQuestionTree().map((subject) => {
+    const chapters = subject.units.flatMap((unit) => unit.chapters);
+    return {
+      subjectId: subject.id,
+      title: subject.title,
+      chapterCount: chapters.length,
+      questionCount: subject.questionCount,
+      topics: chapters.reduce((sum, chapter) => sum + chapter.topics.length, 0)
+    };
+  });
+}

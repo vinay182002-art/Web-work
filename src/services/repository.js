@@ -7,11 +7,13 @@ const defaultState = {
   quizAttempts: {},
   questionAttempts: [],
   microChecks: {},
+  topicModes: {},
   flashcardReviews: {},
   notesByChapter: {},
   bookmarks: [],
   studySessions: [],
   revisionItems: [],
+  topicActivity: {},
   investigations: {},
   coachProfile: {},
   recommendationFeedback: [],
@@ -84,12 +86,13 @@ export const repository = {
     return { ...state };
   },
 
-  async recordQuizAttempt(chapterId, score, total) {
+  async recordQuizAttempt(chapterId, score, total, details = {}) {
     const quizProgress = total ? Math.round(score / total * 100) : 0;
+    const previous = state.quizAttempts[chapterId];
     state = {
       ...state,
       progressByChapter: { ...state.progressByChapter, [chapterId]: Math.max(state.progressByChapter[chapterId] || 0, quizProgress) },
-      quizAttempts: { ...state.quizAttempts, [chapterId]: { score, total, completedAt: new Date().toISOString() } }
+      quizAttempts: { ...state.quizAttempts, [chapterId]: { score, total, answers: details.answers || [], weakConcepts: details.weakConcepts || [], attempts: (previous?.attempts || 0) + 1, completedAt: new Date().toISOString() } }
     };
     persist();
     return { ...state };
@@ -111,6 +114,31 @@ export const repository = {
     state = {
       ...state,
       microChecks: { ...state.microChecks, [`${chapterId}:${checkId}`]: correct }
+    };
+    persist();
+    return { ...state };
+  },
+
+  async markTopicMode(chapterId, mode) {
+    state = { ...state, topicModes: { ...state.topicModes, [chapterId]: { ...(state.topicModes?.[chapterId] || {}), [mode]: true, lastMode: mode === 'deep' ? 'deep-dive' : mode } } };
+    persist();
+    return { ...state };
+  },
+
+  async recordTopicVisit(chapterId, mode) {
+    state = { ...state, topicModes: { ...state.topicModes, [chapterId]: { ...(state.topicModes?.[chapterId] || {}), lastMode: mode } } };
+    persist();
+    return { ...state };
+  },
+
+  async resetTopicProgress(chapterId) {
+    state = {
+      ...state,
+      completedSections: state.completedSections.filter((key) => !key.startsWith(`${chapterId}:`)),
+      quizAttempts: Object.fromEntries(Object.entries(state.quizAttempts).filter(([key]) => key !== chapterId)),
+      topicModes: Object.fromEntries(Object.entries(state.topicModes || {}).filter(([key]) => key !== chapterId)),
+      progressByChapter: Object.fromEntries(Object.entries(state.progressByChapter).filter(([key]) => key !== chapterId)),
+      revisionItems: state.revisionItems.filter((item) => item.chapterId !== chapterId)
     };
     persist();
     return { ...state };
@@ -150,6 +178,28 @@ export const repository = {
     state = { ...state, studySessions: [...state.studySessions, session] };
     persist();
     return session;
+  },
+
+  /** Accumulate time-on-topic, current mode, and last-studied timestamps. */
+  async recordTopicActivity(chapterId, mode = 'deep-dive', seconds = 0, subjectId = null) {
+    const previous = state.topicActivity?.[chapterId] || { seconds: 0, modeSeconds: {}, lastMode: null, lastStudiedAt: null, subjectId: null };
+    const safeSeconds = Math.max(0, Math.round(Number(seconds) || 0));
+    state = {
+      ...state,
+      topicActivity: {
+        ...(state.topicActivity || {}),
+        [chapterId]: {
+          ...previous,
+          seconds: (previous.seconds || 0) + safeSeconds,
+          modeSeconds: { ...(previous.modeSeconds || {}), [mode || 'other']: (previous.modeSeconds?.[mode] || 0) + safeSeconds },
+          lastMode: mode || previous.lastMode,
+          lastStudiedAt: new Date().toISOString(),
+          subjectId: subjectId || previous.subjectId
+        }
+      }
+    };
+    persist();
+    return { ...state };
   },
 
   async finishStudySession(startedAt) {

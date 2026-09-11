@@ -1,4 +1,4 @@
-const CACHE_NAME = 'forensic-atlas-shell-v20';
+const CACHE_NAME = 'forensic-atlas-shell-v24';
 const ASSETS = [
   './',
   './index.html',
@@ -6,6 +6,12 @@ const ASSETS = [
   './app.js',
   './manifest.webmanifest',
   './src/components/app-shell.js',
+  './src/components/topic-learning.js',
+  './src/components/semester-dashboard.js',
+  './src/components/subject-dashboard.js',
+  './src/components/revision-view.js',
+  './src/components/papers-view.js',
+  './src/components/bookmarks-view.js',
   './src/data/curriculum.js',
   './src/lib/router.js',
   './src/services/repository.js',
@@ -16,6 +22,9 @@ const ASSETS = [
   './src/services/content-engine.js',
   './src/services/question-engine.js',
   './src/services/lab-engine.js',
+  './src/services/semester-service.js',
+  './src/services/smart-revision.js',
+  './src/services/previous-papers.js',
   './src/data/lab-simulations.js',
   './src/services/study-coach.js',
   './src/data/content-record.js',
@@ -29,7 +38,6 @@ const ASSETS = [
   './src/services/personalization.js',
   './src/services/content-operations.js',
   './src/services/subject-audit.js',
-  './src/lib/router.js',
   './src/types/models.js'
 ];
 
